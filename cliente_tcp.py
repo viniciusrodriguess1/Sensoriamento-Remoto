@@ -1,19 +1,33 @@
 import socket
+import requests
+import time
 
-HOST = '127.0.0.1'  # IP do servidor
-PORT = 5001    # Porta do servidor
+fastapi_url = "http://localhost:8000/arduino_data"
 
-# Dados que você quer enviar (exemplo)
-id_valor = 123
-ph_valor = 7.2
-data_valor = "2025-05-20 14:30:00"
-usuario_id_valor = 42
+tcp_ip = "127.0.0.1" #IP do servidor TCP
+tcp_port = 5001  # Porta do servidor TCP
 
-mensagem = f"{id_valor},{ph_valor},{data_valor},{usuario_id_valor}"
+while True:
+    try:
+        # 1. Requisição para o servidor FastAPI
+        response = requests.get(fastapi_url)
+        if response.status_code == 200:
+            arduino_data = response.json().get("data")
+            if arduino_data:
+                print(f"Dados obtidos do FastAPI: {arduino_data}")
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
-    s.sendall(mensagem.encode('utf-8'))
+                # 2. Enviar para o servidor TCP
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((tcp_ip, tcp_port))
+                    s.sendall(arduino_data.encode('utf-8'))
+                    print("Dados enviados ao servidor TCP.")
+            else:
+                print("Nenhum dado recebido do Arduino ainda.")
+        else:
+            print(f"Erro ao obter dados do FastAPI: {response.status_code}")
 
-    resposta = s.recv(1024)
-    print('Resposta do servidor:', resposta.decode('utf-8'))
+        time.sleep(5)  
+
+    except Exception as e:
+        print(f"Erro: {e}")
+        time.sleep(5)
