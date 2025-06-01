@@ -1,3 +1,4 @@
+
 import socket
 import requests
 import time
@@ -31,3 +32,4 @@ while True:
     except Exception as e:
         print(f"Erro: {e}")
         time.sleep(5)
+print(arduino_data)
