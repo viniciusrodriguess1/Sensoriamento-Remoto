@@ -1,26 +1,39 @@
 import network
+import socket
 import time
+import random
 
-ssid = "DIGITAL-GABRIEL" #alterar nome da rede
-password = "07102017" # || senha
+# configuração da rede
+ssid = "CAFOFOEMNARNIA-2.4G"
+password = "narniahouse"
 
+server_ip = "192.168.0.100"
+server_port = 5001
+
+# conexão wifi
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 wlan.connect(ssid, password)
 
 print("Conectando ao Wi-Fi...")
-
-max_wait = 10
-while max_wait > 0:
-    if wlan.isconnected():
-        break
-    print("Aguardando conexão...")
+while not wlan.isconnected():
     time.sleep(1)
-    max_wait -= 1
+print("Conectado!")
+print("IP local:", wlan.ifconfig()[0])
 
-if wlan.isconnected():
-    print("Conectado com sucesso!")
-    print("IP:", wlan.ifconfig()[0])
-else:
-    print("Falha ao conectar.")
+while True:
+    try:
+        print("🔌 Tentando conectar ao servidor...")
+        addr = socket.getaddrinfo(server_ip, server_port)[0][-1]
+        s = socket.socket()
+        s.connect(addr)
 
+        numero = random.randint(1000, 9000)
+        msg = f"Mensagem da Pico W: {numero}\n"
+        s.send(msg.encode('utf-8'))
+        print("Mensagem enviada:", msg.strip())
+        s.close() 
+    except Exception as e:
+        print("Erro ao conectar/enviar:", e)
+
+    time.sleep(5)
