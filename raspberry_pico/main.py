@@ -1,39 +1,42 @@
 import network
 import socket
 import time
+import json
 import random
 
-# configuração da rede
-ssid = "CAFOFOEMNARNIA-2.4G"
-password = "narniahouse"
-
-server_ip = "192.168.0.100"
-server_port = 5001
-
-# conexão wifi
+# Wi-Fi
+ssid = "wifi"
+password = "senha"
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 wlan.connect(ssid, password)
-
 print("Conectando ao Wi-Fi...")
 while not wlan.isconnected():
     time.sleep(1)
-print("Conectado!")
-print("IP local:", wlan.ifconfig()[0])
+print("Conectado:", wlan.ifconfig()[0])
 
+# Simulação de sensores
+def ler_sensores():
+    ph = round(random.uniform(6.5, 8.0), 2)
+    boia = random.randint(0, 1)
+    status = "Alto" if boia else "Baixo"
+    return {"ph": ph, "boia": boia, "status": status}
+
+# Loop principal
 while True:
     try:
-        print("🔌 Tentando conectar ao servidor...")
-        addr = socket.getaddrinfo(server_ip, server_port)[0][-1]
+        dados = ler_sensores()
+        print("Enviando:", dados)
+
+        # Inicia a conexão com o servidro
+        addr = socket.getaddrinfo("192.168.1.13", 5001)[0][-1]
         s = socket.socket()
         s.connect(addr)
-
-        numero = random.randint(1000, 9000)
-        msg = f"Mensagem da Pico W: {numero}\n"
-        s.send(msg.encode('utf-8'))
-        print("Mensagem enviada:", msg.strip())
-        s.close() 
+        s.send(json.dumps(dados).encode())
+        s.close()
+        print("Dados enviados com sucesso!")
     except Exception as e:
-        print("Erro ao conectar/enviar:", e)
+        print("Erro ao enviar:", e)
 
     time.sleep(5)
+    
