@@ -25,18 +25,30 @@ def ler_sensores():
 # Loop principal
 while True:
     try:
-        dados = ler_sensores()
-        print("Enviando:", dados)
-
-        # Inicia a conexão com o servidro
+        #Enviar apenas o pH
+        ph = round(random.uniform(6.5, 8.0), 2)
+        dados_ph = {"ph": ph}
+        print("Enviando pH:", dados_ph)
         addr = socket.getaddrinfo("192.168.1.13", 5001)[0][-1]
         s = socket.socket()
         s.connect(addr)
-        s.send(json.dumps(dados).encode())
+        s.send(json.dumps(dados_ph).encode())
         s.close()
-        print("Dados enviados com sucesso!")
+        print("pH enviado")
+
+        #Enviar apenas boia e status
+        boia = random.randint(0, 1)
+        status = "Alto" if boia else "Baixo"
+        dados_boia = {"boia": boia, "status": status}
+        print("Enviando boia:", dados_boia)
+        addr = socket.getaddrinfo("192.168.1.13", 5001)[0][-1]
+        s = socket.socket()
+        s.connect(addr)
+        s.send(json.dumps(dados_boia).encode())
+        s.close()
+        print("Nível da boia enviado")
+
     except Exception as e:
         print("Erro ao enviar:", e)
 
     time.sleep(5)
-    
