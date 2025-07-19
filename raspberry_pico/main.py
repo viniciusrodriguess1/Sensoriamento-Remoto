@@ -3,6 +3,7 @@ import socket
 import time
 import json
 import random
+from machine import ADC, Pin
 
 # Wi-Fi
 ssid = "wifi"
@@ -15,12 +16,26 @@ while not wlan.isconnected():
     time.sleep(1)
 print("Conectado:", wlan.ifconfig()[0])
 
-# Simulação de sensores
+# sensores
+ph_sensor = ADC(26)  # GP26 (ADC0)
+boia_pin = Pin(15, Pin.IN)
+
 def ler_sensores():
-    ph = round(random.uniform(6.5, 8.0), 2)
-    boia = random.randint(0, 1)
-    status = "Alto" if boia else "Baixo"
-    return {"ph": ph, "boia": boia, "status": status}
+    # Leitura do sensor de pH
+    raw_ph = ph_sensor.read_u16()
+    volt_ph = (raw_ph / 65535) * 3.3
+    ph_valor = round((volt_ph - 0.5) * 3.5, 2)
+    
+    # Leitura do sensor de boia
+    boia = boia_pin.value()
+    status = "Alto" if boia == 1 else "Baixo"
+
+    return {
+        "ph": ph_valor,
+        "boia": boia,
+        "status": status
+    }
+
 
 # Loop principal
 while True:
