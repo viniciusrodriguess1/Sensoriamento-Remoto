@@ -1,65 +1,44 @@
 import serial
-import pymysql
-import json
+import socket
 import time
 
-# Configuração da porta serial do Arduino
-try:
-    porta_serial = serial.Serial('COM6', 9600, timeout=2)
-except serial.SerialException as e:
-    print(f"Erro ao abrir porta serial: {e}")
-    exit()
+# CONFIGURE AQUI os parâmetros:
+SERIAL_PORT = 'COM7'          # Ex: 'COM3' no Windows, '/dev/ttyACM0' no Linux
+BAUD_RATE = 9600            # Mesmo baudrate do Arduino
 
-# Conexão com o banco de dados MySQL usando PyMySQL
-try:
-    db = pymysql.connect(
-        host="localhost",
-        user="root",
-        database="banco_de_dados"
-    )
-    cursor = db.cursor()
-    print("Conexão ao MySQL estabelecida com sucesso!")
-except pymysql.MySQLError as e:
-    print(f"Erro ao conectar ao MySQL: {e}")
-    exit()
+TCP_HOST = "172.26.8.127"        # IP do servidor TCP (ajuste, se for remoto pela rede)
+TCP_PORT = 5001                             # Porta do servidor TCP
 
-while True:
+def envia_para_servidor(mensagem):
     try:
-        # Lê a linha da serial
-        dados = porta_serial.readline().decode().strip()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((TCP_HOST, TCP_PORT))
+            s.sendall(mensagem.encode('utf-8'))
+    except Exception as e:
+        print(f"Falha ao enviar para o servidor: {e}")
 
-        # Verifica se a linha recebida é vazia ou não contém JSON
-        if not dados or not dados.startswith("{"):
-            print(f"Ignorando entrada inválida: {dados}")
-            continue
-        
-        print(f"Recebido da serial: {dados}")
-
-        # Converte para JSON
-        try:
-            dados_json = json.loads(dados)
-        except json.JSONDecodeError:
-            print("Erro ao converter JSON. Verifique os dados recebidos.")
-            continue
-
-        # Extraindo os dados corretamente
-        ph = dados_json.get('ph')
-        voltagem = dados_json.get('voltagem')
-        boia = dados_json.get('boia')
-        status = dados_json.get('status')
-
-        # Verifica se os dados são válidos antes de inserir no banco
-        if ph is None or voltagem is None or boia is None or status is None:
-            print("Dados inválidos recebidos, ignorando...")
-            continue
-
-        # Insere no banco de dados
-        query = "INSERT INTO niveis_agua (ph, voltagem, boia, status) VALUES (%s, %s, %s, %s)"
-        cursor.execute(query, (ph, voltagem, boia, status))
-        db.commit()
-        
-        print(f"Dados inseridos: pH = {ph}, Voltagem = {voltagem}, Boia = {boia}, Status = {status}")
-
+def main():
+    try:
+        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+        print(f"Lendo {SERIAL_PORT} a {BAUD_RATE} baud e enviando para {TCP_HOST}:{TCP_PORT}")
+        while True:
+            if ser.in_waiting > 0:
+                linha = ser.readline().decode("utf-8", errors="ignore").strip()
+                if linha != "":
+                    print(f"Lido da serial: {linha}")
+                    envia_para_servidor(linha)
+            time.sleep(0.05)
+    except serial.SerialException as e:
+        print(f"Erro na porta serial: {e}")
+    except KeyboardInterrupt:
+        print("Encerrando leitura serial.")
     except Exception as e:
         print(f"Erro: {e}")
-        time.sleep(1)  # Aguarda um tempo antes de tentar novamente
+    finally:
+        try:
+            ser.close()
+        except:
+            pass
+
+if __name__ == "__main__":
+    main()
